@@ -1,0 +1,28 @@
+services:
+  ad-r1m-dev:
+    image: ad-r1m:jetson-jazzy-2
+    container_name: ad-r1m-dev
+
+    # --network host --ipc host --pid host
+    network_mode: host
+    ipc: host
+    pid: host
+
+    # --privileged
+    privileged: true
+
+    environment:
+      - DISPLAY=${DISPLAY}
+      - ROS_DOMAIN_ID=43
+      - QT_X11_NO_MITSHM=1
+
+    volumes:
+      # X11 socket for GUI apps (rviz, etc.)
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      # Input devices (joystick/gamepad, e.g. /dev/input/js0, event*)
+      - /dev/input:/dev/input
+
+    # -it  +  bash
+    stdin_open: true
+    tty: true
+    command: bash
