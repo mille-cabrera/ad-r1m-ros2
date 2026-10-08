@@ -1,4 +1,4 @@
-<?xml version="1.0">
+<?xml version="1.0"?>
 
 <robot name="adrd_demo_ros2">
   <link name="ad_r1m_0/base_link" />
@@ -10,13 +10,5 @@
   </joint>
 
   <link name="camera1_link"/>
-  
-  <link name="camera_imu_optical_frame"/>
-  <joint name="camera1_to_imu" type="fixed">
-    <parent link="camera1_link"/>
-    <child link="camera_imu_optical_frame"/>
-    <origin xyz="0 0 0" rpy="0 0 0"/>
-  </joint>
-  
 
 </robot>

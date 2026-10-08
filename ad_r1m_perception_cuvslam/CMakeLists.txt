@@ -14,7 +14,7 @@ find_package(sensor_msgs REQUIRED)
 
 # add_library() instead of add_executable for composable nodes
 add_library(realsense_image_sync_component SHARED src/realsense_image_sync.cpp)
-ament_target_dependencies(realsense_image_sync_component rclcpp rclcpp_components sensor_msgs)
+target_link_libraries(realsense_image_sync_component PUBLIC rclcpp::rclcpp rclcpp_components::component ${sensor_msgs_TARGETS})
 rclcpp_components_register_node(
   realsense_image_sync_component
   PLUGIN "camera_sync::MultiApproxSync"

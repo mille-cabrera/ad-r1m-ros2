@@ -26,7 +26,7 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # for multiple cameras use realsense_calibration.urdf.xacro, for one: single_realsense_calibration.urdf.xacro
-    urdf_file = os.path.join(pkg_share, 'urdf', 'realsense_calibration.urdf.xacro')
+    urdf_file = LaunchConfiguration('urdf_file').perform(context)
     with open(urdf_file, 'r') as f:
         robot_description = f.read()
 
@@ -49,7 +49,7 @@ def launch_setup(context, *args, **kwargs):
     def realsense_capture(common_params, camera_params):
         stereo_capture = ComposableNode(
             name=camera_params['camera_name'],
-            namespace=camera_params['camera_name'],
+            namespace='',
             package='realsense2_camera',
             plugin='realsense2_camera::RealSenseNodeFactory',
             parameters=[common_params | camera_params]
@@ -58,7 +58,7 @@ def launch_setup(context, *args, **kwargs):
 
     visual_slam_node = ComposableNode(
         name='visual_slam_node',
-        package='isaac_ros_visual_slam',
+        package='isaac_ros_cuvslam',
         plugin='nvidia::isaac_ros::visual_slam::VisualSlamNode',
         parameters=[
             rs_config['visual_slam'] |
@@ -105,6 +105,11 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     pkg_share = get_package_share_directory('ad_r1m_perception_cuvslam')
     # for one realsense: vslam_single_realsense.yaml'
+    urdf_file_arg = DeclareLaunchArgument(
+        'urdf_file', 
+        default_value=os.path.join(pkg_share, 'urdf', 'realsense_calibration.urdf.xacro')
+    )
+
     config_path_arg = DeclareLaunchArgument(
         'config_path',
         default_value=os.path.join(pkg_share, 'config', 'vslam_multi_realsense.yaml'),
@@ -118,6 +123,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        urdf_file_arg,
         config_path_arg,
         use_rosbag_arg,
         OpaqueFunction(function=launch_setup),

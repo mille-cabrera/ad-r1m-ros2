@@ -6,11 +6,11 @@
 visual_slam:
   enable_image_denoising: False
   rectified_images: True
-  enable_imu_fusion: False  # if only one camera is used, this can be set to true
-  gyro_noise_density: 0.00015593952556059264 #D455
-  gyro_random_walk: 7.371377089394156e-06 #D455
-  accel_noise_density: 0.00246907522075608 #D455
-  accel_random_walk: 0.0004886176561242167 #D455
+  tracking_mode: 1
+  gyro_noise_density: 0.000244 #D435if
+  gyro_random_walk: 0.000019393 #D435if
+  accel_noise_density: 0.001862 #D435if
+  accel_random_walk: 0.003 #D435if
   image_jitter_threshold_ms: 50.00
   sync_matching_threshold_ms: 20.0
   base_frame: 'ad_r1m_0/base_link'
@@ -21,7 +21,7 @@ visual_slam:
   enable_ground_constraint_in_slam: True
   enable_localization_n_mapping: True
   enable_debug_mode: False
-  imu_frame: 'camera_imu_optical_frame'
+  imu_frame: 'camera1_gyro_optical_frame'
   odom_frame: 'ad_r1m_0/odom'
   enable_slam_visualization: True #when using only one camera
   save_map_folder_path: ''
@@ -57,16 +57,16 @@ common_params:
   #angular velocity_cov:
   #hold_back_imu_for_frames: True #imu data and frames are published in a burst (no imu data between frames)
   gyro_fps: 200
-  accel_fps: 200
+  accel_fps: 250
   unite_imu_method: 2 #0 = no imu, 1 = gyro + last accel msg, 2 = gyro + accel interpolated to gyro timestamp
   rgb_camera.color_profile: '1280,720,30'
-  depth_module.infra_profile: '1280,720,30'
+  depth_module.infra_profile: '640,360,60'
   depth_module.enable_auto_exposure: True
   depth_module.emitter_enabled: 0
 
 cameras:
   - camera_name: camera1
-    serial_no: '243322074768' #'234222300435' #D455 camera #'243322074768' #D435i 
+    serial_no: '262422073084' #'234222300435' #D455 camera #'243322074768' #D435i 
     usb_port_id: ''
     depth_module.inter_cam_sync_mode: 1 #check what this parameter is about
 

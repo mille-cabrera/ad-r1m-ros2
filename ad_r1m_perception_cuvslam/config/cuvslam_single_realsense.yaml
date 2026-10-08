@@ -23,7 +23,7 @@ visual_slam:
   enable_localization_n_mapping: True #False to use only vslam odometry in robot_localization with no map transform
   enable_image_denoising: False
   rectified_images: True
-  enable_imu_fusion: False
+  tracking_mode: 0
   gyro_noise_density: 0.00015593952556059264 #D455
   gyro_random_walk: 7.371377089394156e-06 #D455
   accel_noise_density: 0.00246907522075608 #D455

@@ -67,7 +67,7 @@ def generate_launch_description():
     def realsense_capture(common_params, camera_params):
         stereo_capture = ComposableNode(
             name=camera_params['camera_name'],
-            namespace=camera_params['camera_name'],
+            namespace='',
             package='realsense2_camera',
             plugin='realsense2_camera::RealSenseNodeFactory',
             parameters=[common_params | camera_params]
@@ -82,7 +82,7 @@ def generate_launch_description():
     })
     visual_slam_node = ComposableNode(
         name='visual_slam_node',
-        package='isaac_ros_visual_slam',
+        package='isaac_ros_cuvslam',
         plugin='nvidia::isaac_ros::visual_slam::VisualSlamNode',
         parameters=[visual_slam_params],
         remappings=remapping_list_cuVSLAM,

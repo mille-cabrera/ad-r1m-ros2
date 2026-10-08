@@ -16,8 +16,6 @@
   <depend>rclcpp_components</depend>
   <depend>sensor_msgs</depend>
 
-  <depend>ad_r1m_pointcloud_to_occupancygrid</depend>
-
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
