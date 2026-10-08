@@ -1,0 +1,10 @@
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+SHELL ["/bin/bash", "-c"]
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    apt-get update && apt-get install -y \
+      ros-lyrical-isaac-ros-cuvslam ros-lyrical-isaac-ros-examples ros-lyrical-isaac-ros-realsense \
+      ros-lyrical-rmw-zenoh-cpp ros-lyrical-robot-state-publisher ros-lyrical-xacro \
+      libnss-mdns avahi-utils avahi-daemon dbus
+COPY entrypoint_additions/*.sh /usr/local/bin/scripts/entrypoint_additions/
+RUN chmod +x /usr/local/bin/scripts/entrypoint_additions/*.sh
