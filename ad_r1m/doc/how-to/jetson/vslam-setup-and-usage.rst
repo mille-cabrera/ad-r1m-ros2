@@ -1,15 +1,14 @@
 5) NVIDIA\ |reg| Isaac\ |tm| ROS Visual SLAM and Intel\ |reg| RealSense\ |tm| setup and usage on NVIDIA Jetson\ |tm| AGX Orin
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Connect the camera to any USB-A connector on the AGX Orin (USB-A 3.2 are recommended).
-
+Connect the camera to a USB 3 port on the AGX Orin (USB-A 3.2 ports are recommended).
 
 5.1) Intel RealSense cameras
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-**Check how the camera is detected**
+**Check how the camera is detected (on the host)**
 
-List only the USB devices with VID **0x8086** (Intel).
+List only the USB devices with VID **0x8086** (Intel):
 
 .. code-block:: bash
 
@@ -21,60 +20,53 @@ The output should be similar to:
 
     Bus 002 Device 005: ID 8086:0b3a Intel Corp. Intel(R) RealSense(TM) Depth Camera 435i
 
-where **0x0B3A** is the PID of RealSense D435i.
+**0x0B3A** is the PID of the RealSense D435i. The D435if reports the same PID. The D455 reports **0x0B5C**.
 
-**Install the packages**
+**Install the udev rules (on the host)**
 
-Register the server's public key:
-
-.. code-block:: bash
-
-    sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE || sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-key F6E65AC044F831AC80A06380C8B3A55A6F3EFCDE
-
-Add the server to the list of repositories:
+With the camera unplugged:
 
 .. code-block:: bash
 
-    sudo add-apt-repository "deb https://librealsense.intel.com/Debian/apt-repo $(lsb_release -cs) main" -u
-
-Install the SDK:
-
-.. code-block:: bash
-
-    sudo apt install librealsense2-utils
-    sudo apt install librealsense2-dev
-
-**Test the functionality with RealSense Viewer**
-
-.. code-block:: bash
-
-    realsense-viewer
+    cd $ISAAC_ROS_WS/src/ad-r1m-ros2/ad_r1m_perception_cuvslam/docker
+    sudo cp 99-realsense-libusb.rules /etc/udev/rules.d/
+    sudo udevadm control --reload-rules && sudo udevadm trigger
 
 .. note::
-    This is the application running in "native mode", outside the docker.
+    This is the only RealSense step on the host. The RealSense SDK (v2.56.3) and the ROS wrapper
+    (realsense-ros r/4.56.3) are installed inside the Docker image.
 
-.. figure:: figures/RealSense_viewer_non_docker.png
-    :alt: RealSense viewer outside Docker
-    :align: center
-    :width: 600px
+**Check the camera inside the container**
 
-.. tip::
-    * The application version is 2.56.5
-    * Note the current firmware version, which is 5.13.0.50. The last firmware version is reported as 5.17.0.10.
-
-.. important::
-    There is no IMU group in the left panel, under the Stereo Module and RGB Camera.
-
-**Load the Docker**
+Plug in the camera, then start the container:
 
 .. code-block:: bash
 
-    cd $ISAAC_ROS_WS
-    source ./install/setup.bash
-    cd ./src/isaac_ros_common
-    ./scripts/run_dev.sh
+    cd $ISAAC_ROS_WS/src/ad-r1m-ros2/ad_r1m_perception_cuvslam/docker
+    ./run.sh
 
-Inside the container, relaunch the viewer:
+Inside the container:
+
+.. code-block:: bash
+
+    rs-enumerate-devices -s
+
+Check that the camera is connected over USB 3.x and that the firmware version is **5.16.0.1**,
+the version required by Isaac\ |tm| ROS 4.6.
+
+.. warning::
+    Updating the firmware with ``rs-fw-update`` writes to the camera flash memory. Do not unplug the camera
+    during the update.
+
+**Test with RealSense Viewer (optional)**
+
+On the host, allow the container to open windows on the display:
+
+.. code-block:: bash
+
+    xhost +local:
+
+Inside the container:
 
 .. code-block:: bash
 
@@ -85,125 +77,83 @@ Inside the container, relaunch the viewer:
     :align: center
     :width: 600px
 
-.. tip::
-    * The application version is 2.55.1
-    * Note that the last firmware version is reported as 5.16.0.1, which is different than the non-docker one (5.17.0.10).
-
-.. important::
-    There is a Motion Module group in the left panel, under the Stereo Module and RGB Camera. 
-
-Select the 2D view mode and enable the Motion Module.  Rotate the camera module and check how gyroscope and accelerometer values change.
+Select the 2D view mode and enable the Motion Module. Rotate the camera module and check how gyroscope and accelerometer values change.
 
 .. figure:: figures/RealSense_viewer_docker_2D.png
     :alt: RealSense accelerometer and gyroscope in realsense-viewer
     :align: center
     :width: 600px
 
-**Test the Isaac ROS Visual SLAM nodes**
+5.2) Test Isaac ROS Visual SLAM with the RealSense camera
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In the existing terminal run:
-
-.. code-block:: bash
-
-    sudo apt update
-    sudo apt install -y ros-humble-isaac-ros-visual-slam ros-humble-isaac-ros-examples ros-humble-isaac-ros-realsense
-
-Start a quick VSLAM demo:
+Inside the container, start NVIDIA's RealSense example (stereo + IMU):
 
 .. code-block:: bash
 
-    ros2 launch isaac_ros_examples isaac_ros_examples.launch.py launch_fragments:=realsense_stereo_rect,visual_slam \
-    interface_specs_file:=${ISAAC_ROS_WS}/isaac_ros_assets/isaac_ros_visual_slam/quickstart_interface_specs.json \
-    base_frame:=camera_link camera_optical_frames:="['camera_infra1_optical_frame', 'camera_infra2_optical_frame']"
+    ros2 launch isaac_ros_visual_slam isaac_ros_visual_slam_realsense.launch.py
 
-.. warning::
-    Note that closing this terminal will unload the docker from all terminals which are created in the following, and where docker has been loaded.
+.. note::
+    This NVIDIA example uses ``accel_fps: 200``. For the D435i/D435if, NVIDIA recommends 250.
+    The AD-R1M configuration (**vslam_single_realsense.yaml**) already uses 250.
 
-**Open another terminal** and run:
+Open a second terminal on the host and attach to the running container:
+
+.. code-block:: bash
+
+    cd $ISAAC_ROS_WS/src/ad-r1m-ros2/ad_r1m_perception_cuvslam/docker
+    ./run.sh
+
+Check the topics and their rates:
 
 .. code-block:: bash
 
-    cd $ISAAC_ROS_WS
-    source ./install/setup.bash
-    cd ./src/isaac_ros_common
-    ./scripts/run_dev.sh
- 
-    rviz2 -d $(ros2 pkg prefix isaac_ros_visual_slam --share)/rviz/default.cfg.rviz
-
-The RViz scene, displaying the point cloud, should look similar to:
-
-.. figure:: figures/RViz2_pointcloud_docker.png
-    :alt: Isaac ROS Visual SLAM demo run
-    :align: center
-    :width: 600px
-
-You can also check the available topics:
-
-.. code-block:: bash
-    
     ros2 topic list
+    ros2 topic hz /camera/infra1/image_rect_raw
+    ros2 topic hz /camera/imu
+    ros2 topic hz /visual_slam/tracking/odometry
 
-The output should be similar to:
+The odometry rate should match the camera frame rate. The topic list should include:
 
 .. code-block:: bash
 
-    /diagnostics
-    /extrinsics/depth_to_infra1
-    /extrinsics/depth_to_infra2
-    /imu
-    /infra1/image_rect_raw/compressed
-    /infra1/image_rect_raw/compressedDepth
-    /infra1/image_rect_raw/theora
-    /infra1/image_rect_raw_mono
-    /infra1/image_rect_raw_mono/nitros
-    /infra1/metadata
-    /infra2/image_rect_raw/compressed
-    /infra2/image_rect_raw/compressedDepth
-    /infra2/image_rect_raw/theora
-    /infra2/image_rect_raw_mono
-    /infra2/image_rect_raw_mono/nitros
-    /infra2/metadata
-    /left/camera_info_rect
-    /left/image_rect
-    /left/image_rect/nitros
-    /left/image_rect_mono
-    /left/image_rect_mono/nitros
-    /parameter_events
-    /right/camera_info_rect
-    /right/image_rect
-    /right/image_rect/nitros
-    /right/image_rect_mono
-    /right/image_rect_mono/nitros
-    /rosout
+    /camera/imu
+    /camera/infra1/camera_info
+    /camera/infra1/image_rect_raw
+    /camera/infra2/camera_info
+    /camera/infra2/image_rect_raw
     /tf
     /tf_static
-    /visual_slam/initial_pose
     /visual_slam/status
     /visual_slam/tracking/odometry
     /visual_slam/tracking/slam_path
     /visual_slam/tracking/vo_path
     /visual_slam/tracking/vo_pose
     /visual_slam/tracking/vo_pose_covariance
-    /visual_slam/trigger_hint
-    /visual_slam/vis/gravity
     /visual_slam/vis/landmarks_cloud
-    /visual_slam/vis/localizer
-    /visual_slam/vis/localizer_loop_closure_cloud
-    /visual_slam/vis/localizer_map_cloud
-    /visual_slam/vis/localizer_observations_cloud
-    /visual_slam/vis/loop_closure_cloud
     /visual_slam/vis/observations_cloud
-    /visual_slam/vis/pose_graph_edges
-    /visual_slam/vis/pose_graph_edges2
-    /visual_slam/vis/pose_graph_nodes
-    /visual_slam/vis/slam_odometry
-    /visual_slam/vis/velocity
+
+**Visualize in RViz**
+
+If ``rviz2`` is not available in the container, install it (it is removed when the container exits;
+add ``ros-jazzy-rviz2`` to ``Dockerfile.ad_r1m_cuvslam`` to keep it):
+
+.. code-block:: bash
+
+    sudo apt-get update && sudo apt-get install -y ros-jazzy-rviz2
+
+.. code-block:: bash
+
+    rviz2 -d $(ros2 pkg prefix isaac_ros_visual_slam --share)/rviz/realsense.cfg.rviz
+
+.. figure:: figures/RViz2_pointcloud_docker.png
+    :alt: Isaac ROS Visual SLAM demo run
+    :align: center
+    :width: 600px
 
 **Reference links**
 
-This tutorial is based on the official **NVIDIA Isaac ROS** documentation. More information about configuring VSLAM in the NVIDIA ecosystem can be found at the following pages:
-    * https://nvidia-isaac-ros.github.io/concepts/visual_slam/cuvslam/index.html
-    * https://nvidia-isaac-ros.github.io/repositories_and_packages/isaac_ros_visual_slam/index.html
-    * https://nvidia-isaac-ros.github.io/getting_started/sensors/realsense_setup.html
-    * https://nvidia-isaac-ros.github.io/getting_started
-    * https://nvidia-isaac-ros.github.io/concepts/visual_slam/cuvslam/validating_cuvslam_setup.html
+This tutorial is based on the official **NVIDIA Isaac ROS 4.6** documentation:
+    * https://nvidia-isaac-ros.github.io/v/release-4.6/repositories_and_packages/isaac_ros_visual_slam/isaac_ros_visual_slam/index.html
+    * https://nvidia-isaac-ros.github.io/v/release-4.6/concepts/visual_slam/cuvslam/tutorial_realsense.html
+    * https://nvidia-isaac-ros.github.io/v/release-4.6/getting_started/sensors/realsense_setup.html

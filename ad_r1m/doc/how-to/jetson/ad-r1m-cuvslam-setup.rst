@@ -1,21 +1,14 @@
 7) AD-R1M and NVIDIA\ |reg| Isaac\ |tm| ROS Visual SLAM setup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Up to this point, the NVIDIA Docker container has been configured with all required dependencies for running Isaac ROS Visual SLAM with a Intel\ |reg| RealSense\ |tm| camera. To enable full integration of Isaac ROS Visual SLAM on the AD-R1M platform, a few additional configuration steps are necessary.
+The Docker image built in the previous steps already contains everything needed to run Isaac\ |tm| ROS Visual SLAM
+on the AD-R1M platform: ``rmw_zenoh_cpp`` and mDNS (Avahi) to communicate with the robot (ad-r1m-0), and the
+startup scripts from ``ad_r1m_perception_cuvslam/docker/entrypoint_additions``.
+The remaining steps configure the network link between the AGX Orin and the robot.
 
-The following steps should be run on the NVIDIA\ |reg| Jetson\ |tm| AGX Orin platform. Open a new terminal and run the following commands:
-
-.. code-block:: bash
-    
-    cd $ISAAC_ROS_WS
-    git clone https://github.com/analogdevicesinc/ad-r1m-ros2
-    cp -r ad-r1m-ros2/ad_r1m_perception_cuvslam/* src/isaac-ros-common/docker
-
-This step copies the additional Dockerfiles and entrypoint scripts required to install extra dependencies inside 
-the container and to enable proper communication between the NVIDIA Docker environment and the AD-R1M platform.
-
-These changes ensure that the container can successfully run zenoh using mDNS, which is necessary for discovering
-and communicating with the robot (ad-r1m-0) over Ethernet.
+.. note::
+    The robot and the AGX Orin must run the same ROS 2 distribution (ROS 2 Jazzy, robot image ``ad-r1m:robot-jazzy``).
+    Communication between different ROS 2 distributions is not supported.
 
 Network Configuration
 ^^^^^^^^^^^^^^^^^^^^^
@@ -25,14 +18,17 @@ middleware. Connectivity can be established either wirelessly (if both the RPi a
 Jetson are on the same WLAN) or via a direct Ethernet cable for a more reliable,
 low-latency link.
 
+The Zenoh settings used by the container are in ``ad_r1m_perception_cuvslam/docker/zenoh.env``.
+
 **Wireless (WLAN)**
 
 If both devices are connected to the same wireless network, no additional network
-configuration is needed. Zenoh can discover the robot using mDNS:
+configuration is needed. Zenoh can discover the robot using mDNS. Set in ``zenoh.env``:
 
 .. code-block:: bash
 
-    -e ZENOH_CONFIG_OVERRIDE='connect/endpoints=["tcp/ad-r1m-0.local:7447"];mode="client"'
+    RMW_IMPLEMENTATION=rmw_zenoh_cpp
+    ZENOH_CONFIG_OVERRIDE=connect/endpoints=["tcp/ad-r1m-0.local:7447"];mode="client"
 
 .. note::
 
@@ -101,13 +97,13 @@ Verify connectivity by pinging from the AGX Orin:
 
     ping 192.168.71.1
 
-When using Ethernet, configure the Docker container to connect using the RPi's
-static IP address instead of the mDNS hostname to ensure traffic flows over the
-wired link:
+When using Ethernet, use the RPi's static IP address in ``zenoh.env`` instead of the
+mDNS hostname, so that traffic flows over the wired link:
 
 .. code-block:: bash
 
-    -e ZENOH_CONFIG_OVERRIDE='connect/endpoints=["tcp/192.168.71.1:7447"];mode="client"'
+    RMW_IMPLEMENTATION=rmw_zenoh_cpp
+    ZENOH_CONFIG_OVERRIDE=connect/endpoints=["tcp/192.168.71.1:7447"];mode="client"
 
 .. note::
 
@@ -115,72 +111,19 @@ wired link:
     Zenoh to resolve to the RPi's wireless address instead of the Ethernet address,
     routing traffic over WiFi. Using the static IP directly guarantees the wired path.
 
-Go to the scripts folder in the **isaac-ros-common** package:
+Start the container
+^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: bash
 
-    cd /src/isaac_ros_common/scripts
+    cd $ISAAC_ROS_WS/src/ad-r1m-ros2/ad_r1m_perception_cuvslam/docker
+    ./run.sh
 
-Modify the **run_dev.sh** script from **$ISAAC_ROS_WS/src/isaac_ros_common** as follows:
-    * Look for the following lines of code 
+``run.sh`` loads ``zenoh.env`` each time the container starts. After editing ``zenoh.env``, exit and
+restart the container. Rebuilding the image is not needed.
 
-    .. code-block:: bash
-
-        BASE_NAME="isaac_ros_dev-$PLATFORM"
-        if [[ ! -z "$CONFIG_CONTAINER_NAME_SUFFIX" ]] ; then
-            BASE_NAME="$BASE_NAME-$CONFIG_CONTAINER_NAME_SUFFIX"
-        fi
-        CONTAINER_NAME="$BASE_NAME-container"
-
-        # Remove any exited containers.
-        if [ "$(docker ps -a --quiet --filter status=exited --filter name=$CONTAINER_NAME)" ]; then
-            docker rm $CONTAINER_NAME > /dev/null
-        fi
-    
-    * Insert the following lines after BASE_NAME="isaac_ros_dev-$PLATFORM". This ensures that intermediate images are not left unnamed and that each image is tagged based on the Dockerfiles used in the build process:
-
-    .. code-block:: bash
-
-        if [[ ! -z "$IMAGE_KEY" && "$IMAGE_KEY" != "ros2_humble" ]]; then
-        IMAGE_KEY_SAFE="${IMAGE_KEY//./-}"   # replace dots with dashes
-        BASE_NAME="${BASE_NAME}-${IMAGE_KEY_SAFE}"
-        fi
-    
-    * In order to automatically configure Zenoh at startup, set the necessary Docker container environment variables:
-
-    .. code-block:: bash
-
-        docker run -it --rm \
-            -e ROS_NAMESPACE=ad_r1m_0 \
-            -e RMW_IMPLEMENTATION=rmw_zenoh_cpp \
-            -e ROBOT_TCP_NAME=ad-r1m-0 \
-            -e ZENOH_CONFIG_OVERRIDE="connect/endpoints=[\"tcp/ad-r1m-0.local:7447\"];mode=\"client\"" \
-            --privileged \
-            --network host \
-            --ipc=host \
-            "${DOCKER_ARGS[@]}" \
-            -v "$ISAAC_ROS_DEV_DIR":/workspaces/isaac_ros-dev \
-            -v /etc/localtime:/etc/localtime:ro \
-            --name "$CONTAINER_NAME" \
-            --runtime nvidia \
-            --entrypoint /usr/local/bin/scripts/workspace-entrypoint.sh \
-            --workdir /workspaces/isaac_ros-dev \
-            "$BASE_NAME" \
-            /bin/bash
-
-After completing all these steps, you can build the updated Docker image by running:
+With the robot bringup running, verify that the robot topics are visible from inside the container:
 
 .. code-block:: bash
 
-    cd $ISAAC_ROS_WS/src/isaac_ros_common
-    ./scripts/run_dev.sh -i ros2_humble.realsense.visualslam
-
-This command creates a new image layer on top of the base Docker image provided by NVIDIA, incorporating all 
-additional dependencies and configuration changes.
-
-You can then launch a new container instance from this updated image using the same script: 
-
-.. code-block:: bash
-
-    cd $ISAAC_ROS_WS/src/isaac_ros_common
-    ./scripts/run_dev.sh -i ros2_humble.realsense.visualslam
+    ros2 topic list

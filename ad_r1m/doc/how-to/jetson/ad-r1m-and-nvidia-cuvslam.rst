@@ -38,19 +38,22 @@ After saving the configuration, start the localization system on the robot:
 
     sudo ./bringup_blind.sh
 
-Open a new terminal on the NVIDIA\ |reg| Jetson\ |tm| and run the Docker container:
+Open a new terminal on the NVIDIA\ |reg| Jetson\ |tm| and start the Docker container:
 
 .. code-block:: bash
 
-    cd $ISAAC_ROS_WS/src/isaac-ros-common
-    ./scripts/run_dev.sh -i ros2_humble.realsense.visualslam
+    cd $ISAAC_ROS_WS/src/ad-r1m-ros2/ad_r1m_perception_cuvslam/docker
+    ./run.sh
 
-Inside the container, launch the Isaac ROS Visual SLAM node:
+Inside the container, launch the Isaac ROS Visual SLAM node (single RealSense camera):
 
 .. code-block:: bash
 
-    source install/setup.sh
-    ros2 launch ad_r1m_cuvslam cuvslam_multirealsense.launch.py
+    source install/setup.bash
+    P=$(ros2 pkg prefix ad_r1m_perception_cuvslam)/share/ad_r1m_perception_cuvslam
+    ros2 launch ad_r1m_perception_cuvslam cuvslam_multirealsense.launch.py \
+        config_path:=$P/config/vslam_single_realsense.yaml \
+        urdf_file:=$P/urdf/single_realsense_calibration.urdf.xacro
 
 The EKF will now combine measurements from the IMU, wheel odometry, and visual odometry to produce the pose estimate.
 
@@ -94,7 +97,7 @@ The full EKF configuration in **ekf.yaml**:
     imu0_remove_gravitational_acceleration: true
 
 .. important::
-    * Make sure the transform between *ad_r1m_0/base_link* and *camera1_link* matches your configuration. By default, it is set as a translation of +0.335 m along the X-axis (front of the robot) in **single_realsense_calibration.urdf**.
+    * Make sure the transform between *ad_r1m_0/base_link* and *camera1_link* matches your configuration.     By default, it is set as a translation of +0.335 m along the X-axis (front of the robot) in **single_realsense_calibration.urdf.xacro**.
 
     .. code-block:: xml
 
@@ -122,7 +125,7 @@ The full EKF configuration in **ekf.yaml**:
 **Multi RealSense cameras**
 
 .. note::
-    * You can use multiple RealSense cameras (up to 16 stereo cameras) without modifying the launch script. Simply configure each camera's serial number in **vslam_single_realsense.yaml** and set the corresponding transform in **single_realsense_calibration.urdf**.
+    * You can use multiple RealSense cameras (up to 16 stereo cameras) without modifying the launch script. Configure each camera's serial number in **vslam_multi_realsense.yaml** and set the corresponding transform in **realsense_calibration.urdf.xacro** (these are the launch file defaults).
     * When using multiple stereo cameras, it is recommended to perform inter-camera synchronization to ensure reliable visual odometry feedback. RealSense cameras support hardware synchronization by designating one camera as the master and the others as slaves:
 
     .. code-block:: yaml
@@ -157,11 +160,11 @@ The full EKF configuration in **ekf.yaml**:
     .. code-block:: yaml
 
         visual_slam:
-            enable_imu_fusion: True
-            gyro_noise_density: 0.00015593952556059264 
-            gyro_random_walk: 7.371377089394156e-06 
-            accel_noise_density: 0.00246907522075608 
-            accel_random_walk: 0.0004886176561242167 
+            tracking_mode: 1   # 0 = stereo, 1 = stereo + IMU, 2 = RGB-D
+            gyro_noise_density: 0.000244
+            gyro_random_walk: 0.000019393
+            accel_noise_density: 0.001862
+            accel_random_walk: 0.003
     
     * To analyze your IMU’s noise parameters, you can use the https://github.com/CruxDevStuff/allan_ros2 tool, which applies Allan deviation analysis.  
     * To use Isaac ROS Visual SLAM for mapping and pose estimation, *enable_localization_n_mapping* must be set to True. If not, visual SLAM will only compute visual odometry.
@@ -190,7 +193,7 @@ To persist the Isaac ROS Visual SLAM map across sessions, set the ``save_map_fol
 .. code-block:: yaml
 
     visual_slam:
-      save_map_folder_path: '/ros_data/cuvslam_map'
+      save_map_folder_path: '/workspaces/isaac_ros-dev/maps/cuvslam_map'
 
 Isaac ROS Visual SLAM will save its internal map database (``.mdb`` files) to this folder. The map can later be loaded to resume localization without rebuilding from scratch.
 
@@ -201,7 +204,7 @@ To load a previously saved map and have Isaac ROS Visual SLAM automatically loca
 .. code-block:: yaml
 
     visual_slam:
-      load_map_folder_path: '/ros_data/cuvslam_map'
+      load_map_folder_path: '/workspaces/isaac_ros-dev/maps/cuvslam_map'
       localize_on_startup: True
 
       # Localizer search parameters

@@ -3,7 +3,7 @@ FROM ${BASE_IMAGE}
 SHELL ["/bin/bash", "-c"]
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && apt-get install -y \
-      ros-jazzy-isaac-ros-cuvslam ros-jazzy-isaac-ros-examples ros-jazzy-isaac-ros-realsense \
+      ros-jazzy-isaac-ros-visual-slam ros-jazzy-isaac-ros-examples ros-jazzy-isaac-ros-realsense \
       ros-jazzy-rmw-zenoh-cpp ros-jazzy-robot-state-publisher ros-jazzy-xacro \
       libnss-mdns avahi-utils avahi-daemon dbus
 COPY entrypoint_additions/*.sh /usr/local/bin/scripts/entrypoint_additions/
