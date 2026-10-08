@@ -11,4 +11,4 @@ exec docker run -it --rm --name $NAME --privileged --network host --ipc=host --p
   -v /usr/bin/tegrastats:/usr/bin/tegrastats -v /sys/kernel/debug:/sys/kernel/debug:ro \
   -v "$WS":/workspaces/isaac_ros-dev -v /etc/localtime:/etc/localtime:ro \
   -w /workspaces/isaac_ros-dev --entrypoint /usr/local/bin/scripts/workspace-entrypoint.sh \
-  ad_r1m/cuvslam:isaac-ros-5.0 /bin/bash
+  ad_r1m/cuvslam:isaac-ros-4.6 /bin/bash

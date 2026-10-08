@@ -58,7 +58,7 @@ def launch_setup(context, *args, **kwargs):
 
     visual_slam_node = ComposableNode(
         name='visual_slam_node',
-        package='isaac_ros_cuvslam',
+        package='isaac_ros_visual_slam',
         plugin='nvidia::isaac_ros::visual_slam::VisualSlamNode',
         parameters=[
             rs_config['visual_slam'] |
