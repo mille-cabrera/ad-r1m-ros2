@@ -1,115 +1,60 @@
 7) AD-R1M and NVIDIA\ |reg| Isaac\ |tm| ROS Visual SLAM setup
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-The Docker image built in the previous steps already contains everything needed to run Isaac\ |tm| ROS Visual SLAM
-on the AD-R1M platform: ``rmw_zenoh_cpp`` and mDNS (Avahi) to communicate with the robot (ad-r1m-0), and the
-startup scripts from ``ad_r1m_perception_cuvslam/docker/entrypoint_additions``.
-The remaining steps configure the network link between the AGX Orin and the robot.
+In this setup the NVIDIA\ |reg| Jetson\ |tm| AGX Orin is the robot computer. It runs the whole AD-R1M ROS 2 stack
+(IMU, motors, ToF, EKF, Nav2) and Isaac\ |tm| ROS Visual SLAM with the Intel\ |reg| RealSense\ |tm| camera.
+No second computer or network link between computers is needed.
 
-.. note::
-    The robot and the AGX Orin must run the same ROS 2 distribution (ROS 2 Jazzy, robot image ``ad-r1m:robot-jazzy``).
-    Communication between different ROS 2 distributions is not supported.
+Both parts run in Docker containers on the AGX Orin and share the host network:
 
-Network Configuration
-^^^^^^^^^^^^^^^^^^^^^
+.. code-block:: text
 
-The AGX Orin and the AD-R1M Raspberry Pi communicate using Zenoh as the ROS 2
-middleware. Connectivity can be established either wirelessly (if both the RPi and
-Jetson are on the same WLAN) or via a direct Ethernet cable for a more reliable,
-low-latency link.
+    Jetson AGX Orin
+    ├─ zenoh_router        rmw_zenohd on localhost:7447 (one per machine)
+    ├─ robot stack         ad-r1m:robot-jazzy containers (IMU, motors, ToF, EKF, Nav2, ...)
+    └─ Isaac ROS VSLAM     ad_r1m/cuvslam:isaac-ros-4.6 container (RealSense + Visual SLAM)
 
-The Zenoh settings used by the container are in ``ad_r1m_perception_cuvslam/docker/zenoh.env``.
+ROS 2 middleware
+^^^^^^^^^^^^^^^^
 
-**Wireless (WLAN)**
+All containers use Zenoh (``rmw_zenoh_cpp``) and communicate through a single Zenoh router running on the AGX Orin.
+The router is the ``zenoh_router`` service of the robot stack. Start it before the other components.
 
-If both devices are connected to the same wireless network, no additional network
-configuration is needed. Zenoh can discover the robot using mDNS. Set in ``zenoh.env``:
+The Isaac ROS Visual SLAM container reads its middleware settings from
+``ad_r1m_perception_cuvslam/docker/zenoh.env``:
 
 .. code-block:: bash
 
     RMW_IMPLEMENTATION=rmw_zenoh_cpp
-    ZENOH_CONFIG_OVERRIDE=connect/endpoints=["tcp/ad-r1m-0.local:7447"];mode="client"
+
+No Zenoh endpoint needs to be configured: by default, ``rmw_zenoh_cpp`` connects to the router on
+``tcp/localhost:7447``.
+
+.. important::
+    * All containers must use the same ``RMW_IMPLEMENTATION`` and the same ``ROS_DOMAIN_ID``
+      (``ROS_DOMAIN_ID`` unset everywhere means domain 0).
+    * All containers must run the same ROS 2 distribution (ROS 2 Jazzy).
+
+Frame names
+^^^^^^^^^^^
+
+The robot bringup runs in the root namespace, so the robot frames are ``base_link`` and ``odom``.
+The Isaac ROS Visual SLAM configuration (**vslam_single_realsense.yaml**) and the camera mounting
+(**single_realsense_calibration.urdf.xacro**) use the same names:
+
+.. code-block:: yaml
+
+    visual_slam:
+      base_frame: 'base_link'
+      odom_frame: 'odom'
+
+If the robot bringup is started with a namespace (e.g. ``ad_r1m_0``), use the prefixed frame names
+(``ad_r1m_0/base_link``, ``ad_r1m_0/odom``) in both files.
 
 .. note::
-
-    Wireless connectivity is convenient for development but may introduce higher
-    latency and packet loss compared to a wired connection.
-
-**Wired (Ethernet)**
-
-For a more reliable connection, connect the AGX Orin directly to the Raspberry Pi
-using an Ethernet cable. Both devices must be configured with static IP addresses
-on the same subnet.
-
-*On the AD-R1M Raspberry Pi:*
-
-Create a static Ethernet profile using NetworkManager:
-
-.. code-block:: bash
-
-    sudo nmcli connection add type ethernet con-name eth-static ifname eth0 \
-      ipv4.method manual ipv4.addresses 192.168.71.1/24
-    sudo nmcli connection up eth-static
-
-Verify the configuration:
-
-.. code-block:: bash
-
-    ip addr show eth0
-
-The output should show ``inet 192.168.71.1/24`` on the ``eth0`` interface.
-
-.. note::
-
-    If ``systemd-networkd`` is also managing ``eth0``, it may conflict with
-    NetworkManager. Either disable systemd-networkd for eth0, or configure the
-    static IP through systemd-networkd instead by editing
-    ``/etc/systemd/network/10-eth0.network``:
-
-    .. code-block:: ini
-
-        [Match]
-        Name=eth0
-
-        [Network]
-        Address=192.168.71.1/24
-
-    Then run ``sudo networkctl reconfigure eth0``.
-
-*On the AGX Orin:*
-
-Create a static Ethernet profile using NetworkManager:
-
-.. code-block:: bash
-
-    sudo nmcli connection add type ethernet con-name eth-rpi ifname eth0 \
-      ipv4.method manual ipv4.addresses 192.168.71.2/24
-    sudo nmcli connection up eth-rpi
-
-.. note::
-
-    The Ethernet interface name may vary depending on the platform (e.g. ``eth0``,
-    ``eno1``). Run ``nmcli device status`` to identify the correct interface name.
-
-Verify connectivity by pinging from the AGX Orin:
-
-.. code-block:: bash
-
-    ping 192.168.71.1
-
-When using Ethernet, use the RPi's static IP address in ``zenoh.env`` instead of the
-mDNS hostname, so that traffic flows over the wired link:
-
-.. code-block:: bash
-
-    RMW_IMPLEMENTATION=rmw_zenoh_cpp
-    ZENOH_CONFIG_OVERRIDE=connect/endpoints=["tcp/192.168.71.1:7447"];mode="client"
-
-.. note::
-
-    Using the mDNS hostname (``ad-r1m-X.local``) with a wired connection may cause
-    Zenoh to resolve to the RPi's wireless address instead of the Ethernet address,
-    routing traffic over WiFi. Using the static IP directly guarantees the wired path.
+    The camera mounting is published by a separate ``robot_state_publisher`` (``realsense_state_publisher``).
+    Its robot description is remapped to ``/realsense_robot_description`` so that it does not replace the
+    robot's own ``/robot_description``, which is used by ``ros2_control``.
 
 Start the container
 ^^^^^^^^^^^^^^^^^^^
@@ -122,8 +67,9 @@ Start the container
 ``run.sh`` loads ``zenoh.env`` each time the container starts. After editing ``zenoh.env``, exit and
 restart the container. Rebuilding the image is not needed.
 
-With the robot bringup running, verify that the robot topics are visible from inside the container:
+With the robot stack running, verify from inside the container that the robot topics and transforms are visible:
 
 .. code-block:: bash
 
     ros2 topic list
+    ros2 run tf2_ros tf2_echo odom base_link

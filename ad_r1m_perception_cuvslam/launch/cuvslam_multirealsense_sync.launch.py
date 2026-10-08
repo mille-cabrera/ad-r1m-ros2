@@ -127,7 +127,9 @@ def generate_launch_description():
         package='robot_state_publisher',
         executable='robot_state_publisher',
         output='both',
-        parameters=[{'robot_description': robot_description}]
+        parameters=[{'robot_description': robot_description}],
+        # Keep the robot's own /robot_description (read by ros2_control) untouched
+        remappings=[('robot_description', 'realsense_robot_description')]
     )
 
     return LaunchDescription([

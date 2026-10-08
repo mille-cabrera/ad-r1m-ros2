@@ -34,7 +34,7 @@ The container is built and started with the scripts in [`docker/`](docker/):
 | `docker/build.sh` | Clones NVIDIA `isaac-ros-cli` (`release-4.6`) into `~/.cache/ad_r1m/` (not installed) and builds the image layers: Isaac ROS base → RealSense → `Dockerfile.ad_r1m_cuvslam` |
 | `docker/Dockerfile.ad_r1m_cuvslam` | Adds Isaac ROS Visual SLAM, `rmw_zenoh_cpp` and mDNS/Avahi on top of the NVIDIA layers |
 | `docker/run.sh` | Starts the container (or opens a new shell in it if it is already running) |
-| `docker/zenoh.env` | Zenoh settings used to reach the robot (`RMW_IMPLEMENTATION`, `ZENOH_CONFIG_OVERRIDE`) |
+| `docker/zenoh.env` | Middleware settings for the container (`RMW_IMPLEMENTATION=rmw_zenoh_cpp`). The container connects to the local Zenoh router (`tcp/localhost:7447`) started with the robot stack |
 | `docker/entrypoint_additions/` | Scripts run at container start (Avahi + D-Bus for mDNS) |
 
 ### One-time host setup
@@ -56,7 +56,7 @@ Only system configuration is needed on the Jetson host:
     sudo udevadm control --reload-rules && sudo udevadm trigger
 ```
 
-- Set the robot address in `docker/zenoh.env` (wired Ethernet: `tcp/192.168.71.1:7447`, WLAN: `tcp/ad-r1m-0.local:7447`).
+- The AGX Orin is the robot computer: the robot stack (`ad-r1m:robot-jazzy` containers, including the Zenoh router) and this container run on the same machine and share the host network. All containers must use the same `RMW_IMPLEMENTATION` and `ROS_DOMAIN_ID`.
 
 ### Build and start the container
 
@@ -70,7 +70,7 @@ Only system configuration is needed on the Jetson host:
     ./run.sh
 ```
 
-Inside the container, build this package (only this package: the other packages in the repository run on the robot):
+Inside the container, build this package (only this package: the other packages in the repository run in the robot stack containers):
 
 ```bash
     colcon build --symlink-install --packages-select ad_r1m_perception_cuvslam
@@ -98,10 +98,10 @@ After completing all setup steps from the official documentation:
 
 ```r
     <robot name="adrd_demo_ros2">
-      <link name="ad_r1m_0/base_link" />
+      <link name="base_link" />
 
       <joint name="camera1" type="fixed">
-        <parent link="ad_r1m_0/base_link"/>
+        <parent link="base_link"/>
         <child link="camera1_link"/>
         <origin xyz="0.335 0.0 0.0" rpy="0 0 0"/>
       </joint>
@@ -110,6 +110,7 @@ After completing all setup steps from the official documentation:
 ```
 
   The default values correspond to a camera mounted in front of the robot, above the ToF camera (0.335 m translation on the X-axis and zero rotation on all axes).
+  The parent frame `base_link` (and `odom_frame: 'odom'` in the configuration) matches the robot bringup running in the root namespace. If the robot runs in a namespace (e.g. `ad_r1m_0`), use the prefixed frame names instead.
 
 - Set the `serial_no` of your camera in **config/vslam_single_realsense.yaml** (get it with `rs-enumerate-devices -s`).
 

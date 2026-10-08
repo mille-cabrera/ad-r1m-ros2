@@ -91,7 +91,9 @@ def launch_setup(context, *args, **kwargs):
         executable='robot_state_publisher',
         output='both',
         name='realsense_state_publisher',
-        parameters=[{'robot_description': robot_description}]
+        parameters=[{'robot_description': robot_description}],
+        # Keep the robot's own /robot_description (read by ros2_control) untouched
+        remappings=[('robot_description', 'realsense_robot_description')]
     )
 
     return [

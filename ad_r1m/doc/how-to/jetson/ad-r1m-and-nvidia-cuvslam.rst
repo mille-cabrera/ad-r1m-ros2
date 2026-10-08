@@ -5,17 +5,9 @@
 
     This documentation page is not up to date to the latest robot software. The robot architecture is largely the same, but specific names of ROS nodes, packages, user-facing scripts may have changed.
 
-Configure **robot_localization** to use Isaac ROS Visual SLAM odometry feedback. 
+Configure **robot_localization** to use Isaac ROS Visual SLAM odometry feedback. The EKF runs in the robot stack on the AGX Orin.
 
-Open a new terminal and connect to the AD-R1M robot via SSH:
-
-.. code-block:: bash
-
-    ssh analog@ad-r1m-0.local
-
-Enter the password *analog* when prompted.
-
-The Extended Kalman Filter (EKF) configuration file tells robot_localization which sensor topics to subscribe to and how to use them. Open the configuration file:
+The Extended Kalman Filter (EKF) configuration file tells robot_localization which sensor topics to subscribe to and how to use them. On the AGX Orin, open the EKF configuration file used by the robot stack:
 
 .. code-block:: bash
 
@@ -32,11 +24,7 @@ Add the following lines to enable visual odometry from Isaac ROS Visual SLAM:
                   false, false, false,
                   false, false, false]
 
-After saving the configuration, start the localization system on the robot:
-
-.. code-block:: bash
-
-    sudo ./bringup_blind.sh
+After saving the configuration, restart the robot stack on the AGX Orin (with the Zenoh router running) so that the EKF loads the new configuration.
 
 Open a new terminal on the NVIDIA\ |reg| Jetson\ |tm| and start the Docker container:
 
@@ -97,12 +85,12 @@ The full EKF configuration in **ekf.yaml**:
     imu0_remove_gravitational_acceleration: true
 
 .. important::
-    * Make sure the transform between *ad_r1m_0/base_link* and *camera1_link* matches your configuration.     By default, it is set as a translation of +0.335 m along the X-axis (front of the robot) in **single_realsense_calibration.urdf.xacro**.
+    * Make sure the transform between *base_link* and *camera1_link* matches your configuration.     By default, it is set as a translation of +0.335 m along the X-axis (front of the robot) in **single_realsense_calibration.urdf.xacro**.
 
     .. code-block:: xml
 
         <joint name="camera1" type="fixed">
-            <parent link="ad_r1m_0/base_link"/>
+            <parent link="base_link"/>
             <child link="camera1_link"/>
             <origin xyz="0.335 0.0 0.0" rpy="0 0 0"/>
         </joint>

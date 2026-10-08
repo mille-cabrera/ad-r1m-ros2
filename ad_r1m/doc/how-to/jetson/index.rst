@@ -25,7 +25,7 @@ Requirements
 - NVIDIA\ |reg| Isaac\ |tm| ROS 4.6 (ROS 2 Jazzy), run inside Docker using the scripts in
   ``ad_r1m_perception_cuvslam/docker``. No ROS, CUDA or Isaac ROS packages are installed on the host.
 - Intel\ |reg| RealSense\ |tm| D455 or D435i/D435if camera, firmware 5.16.0.1
-- AD-R1M Robot Platform running the ROS 2 Jazzy image (``ad-r1m:robot-jazzy``)
+- AD-R1M Robot Platform with the AGX Orin as the robot computer, running the robot stack from the ROS 2 Jazzy image (``ad-r1m:robot-jazzy``)
 
 Getting Started
 ---------------

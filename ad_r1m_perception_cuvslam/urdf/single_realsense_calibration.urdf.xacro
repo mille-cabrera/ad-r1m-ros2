@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 
 <robot name="adrd_demo_ros2">
-  <link name="ad_r1m_0/base_link" />
+  <link name="base_link" />
 
   <joint name="camera1" type="fixed">
-    <parent link="ad_r1m_0/base_link"/>
+    <parent link="base_link"/>
     <child link="camera1_link"/>
     <origin xyz="0.335 0.0 0.0" rpy="0 0 0"/>
   </joint>
