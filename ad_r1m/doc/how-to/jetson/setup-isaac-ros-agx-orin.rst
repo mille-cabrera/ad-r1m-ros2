@@ -1,6 +1,11 @@
 3) Setup NVIDIA\ |reg| Isaac\ |tm| ROS on AGX Orin
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+.. note::
+    This page installs ROS 2 and Isaac Sim workspaces directly on the AGX Orin. It is **not required** for
+    Isaac\ |tm| ROS Visual SLAM: that setup runs entirely inside Docker (Isaac\ |tm| ROS 4.6, ROS 2 Jazzy).
+    See :doc:`setup-isaac-ros-vslam`.
+
 3.1) Set locale 
 ^^^^^^^^^^^^^^^
 

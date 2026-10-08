@@ -1,34 +1,86 @@
 4) Setup NVIDIA\ |reg| Isaac\ |tm| ROS Visual SLAM
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-4.1) Clone **isaac_ros_common**
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+NVIDIA\ |reg| Isaac\ |tm| ROS Visual SLAM runs inside a Docker container based on Isaac\ |tm| ROS 4.6
+(ROS 2 Jazzy, JetPack\ |tm| 7.2). The image is built with the scripts in
+``ad_r1m_perception_cuvslam/docker``. No ROS, CUDA or Isaac ROS packages are installed on the host.
 
-.. warning:: 
-    This step is required only if camera is of Intel\ |reg| RealSense\ |tm| type.
-    It should not be run for other types of cameras.
+4.1) Check the host prerequisites
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-.. code-block:: bash
-
-    cd $ISAAC_ROS_WS/src
-    git clone -b release-3.2 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common.git isaac_ros_common
-
-Configure the container to include RealSense\ |tm| packages.
-
-.. code-block:: bash
-    
-    cd $ISAAC_ROS_WS/src/isaac_ros_common/scripts
-    touch .isaac_ros_common-config
-    echo CONFIG_IMAGE_KEY=ros2_humble.realsense > .isaac_ros_common-config
-
-4.2) Download quickstart data from NGC (NVIDIA GPU Cloud)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Docker, the NVIDIA container runtime and ``buildx`` are provided by JetPack\ |tm|. Verify them:
 
 .. code-block:: bash
 
-    sudo apt install curl jq tar
+    docker buildx version
+    docker run --rm --gpus all ubuntu:24.04 true
 
-Download the asset from NGC
+Add the current user to the docker group:
+
+.. code-block:: bash
+
+    sudo usermod -aG docker $USER && newgrp docker
+
+4.2) Clone the AD-R1M repository
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+    export ISAAC_ROS_WS=~/workspaces/isaac_ros-dev
+    mkdir -p $ISAAC_ROS_WS/src && cd $ISAAC_ROS_WS/src
+    git clone https://github.com/analogdevicesinc/ad-r1m-ros2
+
+.. tip::
+    Add ``export ISAAC_ROS_WS=~/workspaces/isaac_ros-dev`` to ``~/.bashrc`` so it is set in every terminal.
+
+4.3) Build the Docker image
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+    cd $ISAAC_ROS_WS/src/ad-r1m-ros2/ad_r1m_perception_cuvslam/docker
+    ./build.sh
+
+``build.sh`` clones NVIDIA ``isaac-ros-cli`` (``release-4.6``) into ``~/.cache/ad_r1m/`` (it is not installed)
+and builds three image layers:
+
+#. Isaac\ |tm| ROS 4.6 base (ROS 2 Jazzy)
+#. Intel\ |reg| RealSense\ |tm| SDK v2.56.3 and realsense-ros r/4.56.3
+#. ``Dockerfile.ad_r1m_cuvslam``: Isaac\ |tm| ROS Visual SLAM, ``rmw_zenoh_cpp`` and Avahi (mDNS)
+
+.. note::
+    The first build compiles librealsense from source and can take a long time.
+    Later starts reuse the image.
+
+4.4) Start the container and build the AD-R1M package
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: bash
+
+    cd $ISAAC_ROS_WS/src/ad-r1m-ros2/ad_r1m_perception_cuvslam/docker
+    ./run.sh
+
+Running ``./run.sh`` again from another terminal opens a new shell in the running container.
+
+Inside the container, build only the cuVSLAM package (the other packages in the repository run on the robot):
+
+.. code-block:: bash
+
+    colcon build --symlink-install --packages-select ad_r1m_perception_cuvslam
+    source install/setup.bash
+
+.. important::
+    The container is started with ``--rm``: everything outside ``/workspaces/isaac_ros-dev`` is lost when it exits.
+    Keep maps, bags and logs under ``/workspaces/isaac_ros-dev`` (``$ISAAC_ROS_WS`` on the host).
+
+4.5) (Optional) Download quickstart data from NGC
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Only needed to run the NVIDIA rosbag quickstart. Run inside the container:
+
+.. code-block:: bash
+
+    sudo apt-get update && sudo apt-get install -y curl jq tar
 
 .. code-block:: bash
 
@@ -37,9 +89,9 @@ Download the asset from NGC
     PACKAGE_NAME="isaac_ros_visual_slam"
     NGC_RESOURCE="isaac_ros_visual_slam_assets"
     NGC_FILENAME="quickstart.tar.gz"
-    MAJOR_VERSION=3
-    MINOR_VERSION=2
-    VERSION_REQ_URL="https://catalog.ngc.nvidia.com/api/resources/versions?orgName=$NGC_ORG&teamName=$NGC_TEAM&name=$NGC_RESOURCE&isPublic=true&pageNumber=0&pageSize=100&sortOrder=CREATED_DATE_DESC"
+    MAJOR_VERSION=4
+    MINOR_VERSION=6
+    VERSION_REQ_URL="https://api.ngc.nvidia.com/v2/resources/$NGC_ORG/$NGC_TEAM/$NGC_RESOURCE/versions"
     AVAILABLE_VERSIONS=$(curl -s \
         -H "Accept: application/json" "$VERSION_REQ_URL")
     LATEST_VERSION_ID=$(echo $AVAILABLE_VERSIONS | jq -r "
@@ -52,107 +104,4 @@ Download the asset from NGC
         " | sort -V | tail -n 1
     )
     if [ -z "$LATEST_VERSION_ID" ]; then
-        echo "No corresponding version found for Isaac ROS $MAJOR_VERSION.$MINOR_VERSION"
-        echo "Found versions:"
-        echo $AVAILABLE_VERSIONS | jq -r '.recipeVersions[].versionId'
-    else
-        mkdir -p ${ISAAC_ROS_WS}/isaac_ros_assets && \
-        FILE_REQ_URL="https://api.ngc.nvidia.com/v2/resources/$NGC_ORG/$NGC_TEAM/$NGC_RESOURCE/\
-    versions/$LATEST_VERSION_ID/files/$NGC_FILENAME" && \
-        curl -LO --request GET "${FILE_REQ_URL}" && \
-        tar -xf ${NGC_FILENAME} -C ${ISAAC_ROS_WS}/isaac_ros_assets && \
-        rm ${NGC_FILENAME}
-    fi
-
-4.3) Build **isaac_ros_visual_slam**
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-**Check the CDI (Container Device Interface)**
-
-List the content of CDI:
-
-.. code-block:: bash
-
-    sudo nvidia-ctk cdi list
-
-.. important::
-    If the output looks like:
-
-    .. code-block:: bash
-        
-        INFO[0000] Found 2 CDI devices
-        nvidia.com/gpu=0
-        nvidia.com/gpu=all
-    
-    **OR**
-
-    .. code-block:: bash
-  
-        INFO[0000] Found 4 CDI devices
-        nvidia.com/gpu=0
-        nvidia.com/gpu=all
-        nvidia.com/pva=0
-        nvidia.com/pva=all  
-    
-    you can skip the instructions from the warning displayed bellow and jump at the adding user to docker group step.
-
-.. warning::
-    Proceed with the rest of the steps from this warning only if the output looks like the following, particularly if there is no gpu listed besides pva (Programmable Vision Accelerator).
-
-    .. code-block:: bash
- 
-        INFO[0000] Found 2 CDI devices
-        nvidia.com/pva=0
-        nvidia.com/pva=all
-    
-    Generate the CDI spec:
-
-    .. code-block:: bash
-
-        sudo nvidia-ctk cdi generate --mode=csv --output=/etc/cdi/nvidia.yaml
-
-    Install the pva-allow-2 package:
-
-    .. code-block:: bash
-
-        sudo apt update
-        sudo apt install software-properties-common
-        sudo apt-key adv --fetch-key https://repo.download.nvidia.com/jetson/jetson-ota-public.asc
-        sudo add-apt-repository 'deb https://repo.download.nvidia.com/jetson/common r36.4 main'
-        sudo apt update
-        sudo apt install pva-allow-2
-
-**Add current user to docker group**
-
-.. code-block:: bash
-
-    sudo usermod -aG docker $USER && newgrp docker
-
-**Launch and create the docker container using the run_dev.sh script**
-
-.. code-block:: bash
-
-    cd $ISAAC_ROS_WS/src/isaac_ros_common
-    ./scripts/run_dev.sh -d $ISAAC_ROS_WS
-
-.. note::
-    Depending on the network speed, this step may take up to one or two hours.
-    The download is performed only once, so all next docker launches will take a few seconds, only sanity checks will take place.
-
-**Install the** **NVIDIA**\ |reg| **Isaac**\ |tm| **ROS Visual SLAM package**
-
-.. code-block:: bash
-    
-    sudo apt update
-    sudo apt install ros-humble-isaac-ros-visual-slam
-
-**Build all packages**
-
-.. code-block:: bash
-
-    cd $ISAAC_ROS_WS
-    source ./install/setup.bash
- 
-    cp ./src/isaac_ros_common/isaac_ros_rosbag_utils/isaac_ros_rosbag_utils/__init__.py ./src/isaac_ros_common/isaac_ros_rosbag_utils/isaac_ros_rosbag_utils/scripts/
- 
-    colcon build
+        echo "No cor
