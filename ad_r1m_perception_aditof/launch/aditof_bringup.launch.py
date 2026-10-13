@@ -38,7 +38,8 @@ def generate_launch_description():
         parameters=[{
             'param_camera_link': 'cam1_adtf31xx_optical',
             'param_input_sensor_mode': 0,
-            'param_config_file_name_of_tof_sdk': pkg_3dtof_adtf31xx_dir + '/config/config_adsd3500_adsd3100.json',
+            'param_config_file_name_of_tof_sdk': PathJoinSubstitution([
+                pkg_3dtof_adtf31xx_dir, 'config', 'config_adsd3500_adsd3100.json']),
             'param_camera_mode': 3,
             'param_enable_depth_ab_compression': False,
             'param_enable_depth_publish': True,
