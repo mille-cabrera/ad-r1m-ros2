@@ -4,7 +4,7 @@
 ARG ROS_DISTRO=humble
 ARG FROM_IMAGE=ros:$ROS_DISTRO
 ARG OVERLAY_WS=/ros2_ws
-ARG BUILD_PACKAGES=ad_r1m_robot
+ARG BUILD_PACKAGES="ad_r1m_robot adi_3dtof_adtf31xx"
 
 ####################################################################################################
 # common stage:
@@ -54,7 +54,12 @@ RUN mkdir -p src/ad_r1m_ros2/
 # First clone external sources -- keep this as separate as possible from the other sources,
 # so we don't trigger a clone in every build
 COPY repos.${ROS_DISTRO}.vcs src/ad_r1m_ros2/
-RUN vcs import src < src/ad_r1m_ros2/repos.${ROS_DISTRO}.vcs
+# RUN vcs import src < src/ad_r1m_ros2/repos.${ROS_DISTRO}.vcs
+RUN vcs import --recursive src < src/ad_r1m_ros2/repos.${ROS_DISTRO}.vcs
+# libaditof v6.1.0 config still requires Libwebsockets; upstream v7.1.0 uses ZeroMQ (the v6.1.0 transport)
+RUN if [ -f src/libaditof/cmake/aditof-config.cmake.in ]; then \
+      sed -i 's/Libwebsockets/ZeroMQ/g' src/libaditof/cmake/aditof-config.cmake.in; \
+    fi
 
 # ...then copy everything else
 COPY ./ src/ad_r1m_ros2/
@@ -210,7 +215,8 @@ RUN --mount=type=cache,target=/etc/apt/apt.conf.d,from=depcacher,source=/etc/apt
     < /tmp/exec_apt.txt xargs apt-get install -y \
         can-utils \
         gdb \
-        vim
+        vim \
+        ros-${ROS_DISTRO}-rviz2
 
 ENV DEBIAN_FRONTEND=
 

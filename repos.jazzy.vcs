@@ -4,3 +4,12 @@ repositories:
     url: https://github.com/laurent-19/depthimage_to_laserscan.git
     version: "nav-offset-distort"
 
+  adi_3dtof_adtf31xx:
+    type: git
+    url: https://github.com/analogdevicesinc/adi_3dtof_adtf31xx.git
+    version: v2.1.0
+
+  libaditof:
+    type: git
+    url: https://github.com/analogdevicesinc/libaditof.git
+    version: v6.1.0
