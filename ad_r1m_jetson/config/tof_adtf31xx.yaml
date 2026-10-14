@@ -1,0 +1,16 @@
+# Parameters for adi_3dtof_adtf31xx_node (adi_3dtof_adtf31xx v2.1.0) in network mode.
+# param_input_sensor_ip and param_config_file_name_of_tof_sdk are set by tof.launch.py.
+/**:
+  ros__parameters:
+    param_camera_link: cam1_adtf31xx_optical
+    # 0: real-time sensor (on the ToF module), 2: ROS bag bin file, 3: network mode
+    param_input_sensor_mode: 3
+    param_camera_mode: 3
+    param_encoding_type: 16UC1
+    param_enable_depth_ab_compression: false
+    param_enable_depth_publish: true
+    param_enable_ab_publish: true
+    param_enable_conf_publish: false
+    param_enable_point_cloud_publish: true
+    param_ab_threshold: 10
+    param_confidence_threshold: 10
