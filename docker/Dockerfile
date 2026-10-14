@@ -216,7 +216,9 @@ RUN --mount=type=cache,target=/etc/apt/apt.conf.d,from=depcacher,source=/etc/apt
         can-utils \
         gdb \
         vim \
-        ros-${ROS_DISTRO}-rviz2
+        ros-${ROS_DISTRO}-rviz2 \
+        ros-${ROS_DISTRO}-rqt \
+        ros-${ROS_DISTRO}-rqt-common-plugins
 
 ENV DEBIAN_FRONTEND=
 
