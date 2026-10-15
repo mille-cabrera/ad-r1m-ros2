@@ -1,0 +1,21 @@
+# pcl_ros VoxelGrid filter producing /obstacle_cloud for the Nav2 costmaps (obstacle_cloud.launch.py).
+# Input: the depth camera point cloud in its optical frame (z = distance along the optical axis):
+#   tof       /cam1/point_cloud            (driver)          frame cam1_adtf31xx_optical
+#   realsense /camera/camera/depth/points  (depth_image_proc) frame camera_depth_optical_frame
+# The output keeps the input frame; the costmap transforms it and applies min/max_obstacle_height.
+/**:
+  obstacle_cloud_filter:
+    ros__parameters:
+      # Downsampling voxel edge (m); matches the costmap resolution (0.05 m).
+      leaf_size: 0.05
+      # Voxels with fewer points are dropped (rejects isolated flying pixels).
+      min_points_per_voxel: 3
+      # Range gate on the optical axis. The ToF driver publishes invalid pixels as (0, 0, 0)
+      # (depth_image_proc uses NaN), which would otherwise mark an obstacle at the camera; keep
+      # filter_limit_min > 0. filter_limit_max matches raytrace_max_range of the costmap source.
+      filter_field_name: z
+      filter_limit_min: 0.3
+      filter_limit_max: 3.0
+      filter_limit_negative: false
+      # Process the newest cloud only; older ones are dropped if the filter falls behind.
+      max_queue_size: 1

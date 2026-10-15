@@ -18,7 +18,10 @@ Bring up the AD-R1M navigation stack on the Jetson.
 Robot base (motors + IMU + EKF) -> depth camera -> depth-to-laserscan -> SLAM Toolbox
 -> Nav2 -> RViz2. Each part can be disabled with its use_* argument.
 
-depth_source selects the depth camera feeding /scan:
+The same camera also feeds /obstacle_cloud (downsampled point cloud, obstacle_cloud.launch.py),
+which the Nav2 costmaps use next to /scan to mark obstacles outside the scan band.
+
+depth_source selects the depth camera feeding /scan and /obstacle_cloud:
   tof       - ADTF3175D ToF module (network mode, tof.launch.py)
   realsense - RealSense D435i/D435if over USB (realsense.launch.py); set the camera mount
               with mount_x/y/z/roll/pitch/yaw (see ad_r1m_perception_realsense)
@@ -40,6 +43,7 @@ def generate_launch_description():
     use_camera = LaunchConfiguration('use_camera')
     depth_source = LaunchConfiguration('depth_source')
     use_scan = LaunchConfiguration('use_scan')
+    use_obstacle_cloud = LaunchConfiguration('use_obstacle_cloud')
     use_slam = LaunchConfiguration('use_slam')
     use_nav = LaunchConfiguration('use_nav')
     use_rviz = LaunchConfiguration('use_rviz')
@@ -57,9 +61,13 @@ def generate_launch_description():
                               description='Start the driver of the selected depth camera'),
         DeclareLaunchArgument('depth_source', default_value='tof',
                               choices=['tof', 'realsense'],
-                              description='Depth camera feeding /scan: tof or realsense'),
+                              description='Depth camera feeding /scan and /obstacle_cloud: '
+                                          'tof or realsense'),
         DeclareLaunchArgument('use_scan', default_value='true',
                               description='Start the depth image to laser scan converter'),
+        DeclareLaunchArgument('use_obstacle_cloud', default_value='true',
+                              description='Start the point cloud filter feeding /obstacle_cloud '
+                                          '(3D obstacles in the Nav2 costmaps)'),
         DeclareLaunchArgument('use_slam', default_value='true',
                               description='Start SLAM Toolbox (online async mapping)'),
         DeclareLaunchArgument('use_nav', default_value='true',
@@ -132,6 +140,15 @@ def generate_launch_description():
         )],
     )
 
+    obstacle_cloud = GroupAction(
+        condition=IfCondition(use_obstacle_cloud),
+        actions=[IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                PathJoinSubstitution([jetson_launch_dir, 'obstacle_cloud.launch.py'])),
+            launch_arguments={'depth_source': depth_source}.items(),
+        )],
+    )
+
     slam = GroupAction(
         condition=IfCondition(use_slam),
         actions=[IncludeLaunchDescription(
@@ -168,4 +185,4 @@ def generate_launch_description():
     )
 
     return LaunchDescription(
-        declared_arguments + [robot, tof, realsense, scan, slam, nav, rviz])
+        declared_arguments + [robot, tof, realsense, scan, obstacle_cloud, slam, nav, rviz])

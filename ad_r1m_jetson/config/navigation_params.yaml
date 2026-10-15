@@ -95,13 +95,29 @@ local_costmap:
         z_voxels: 16
         max_obstacle_height: 2.0
         mark_threshold: 0
-        observation_sources: scan
+        # scan: /scan band (also used by SLAM). obstacle_cloud: downsampled depth point cloud
+        # (obstacle_cloud.launch.py) for obstacles above/below the scan band.
+        observation_sources: scan obstacle_cloud
         scan:
           topic: scan
           max_obstacle_height: 2.0
           clearing: True
           marking: True
           data_type: "LaserScan"
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.0
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.0
+        obstacle_cloud:
+          topic: obstacle_cloud
+          data_type: "PointCloud2"
+          # Heights in the costmap global frame (floor = 0, base_link is on the floor).
+          # min rejects floor returns (depth noise, mount pitch error); max = robot height
+          # incl. payload + margin. Tune both on the robot.
+          min_obstacle_height: 0.05
+          max_obstacle_height: 0.5
+          clearing: True
+          marking: True
           raytrace_max_range: 3.0
           raytrace_min_range: 0.0
           obstacle_max_range: 2.5
@@ -131,13 +147,25 @@ global_costmap:
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
-        observation_sources: scan
+        observation_sources: scan obstacle_cloud
         scan:
           topic: scan
           max_obstacle_height: 2.0
           clearing: True
           marking: True
           data_type: "LaserScan"
+          raytrace_max_range: 3.0
+          raytrace_min_range: 0.3
+          obstacle_max_range: 2.5
+          obstacle_min_range: 0.3
+        obstacle_cloud:
+          topic: obstacle_cloud
+          data_type: "PointCloud2"
+          # Same height band as the local costmap voxel_layer
+          min_obstacle_height: 0.05
+          max_obstacle_height: 0.5
+          clearing: True
+          marking: True
           raytrace_max_range: 3.0
           raytrace_min_range: 0.3
           obstacle_max_range: 2.5

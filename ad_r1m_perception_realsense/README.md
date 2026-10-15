@@ -12,6 +12,12 @@ depthimage_to_laserscan (repo fork, scan_offset)  -> /scan  (frame camera_depth_
 slam_toolbox / Nav2 (unchanged, scan_topic: scan)
 ```
 
+The depth image is also turned into a point cloud by `depth_image_proc` in
+`ad_r1m_jetson/launch/obstacle_cloud.launch.py` and downsampled into `/obstacle_cloud` for 3D
+obstacles in the Nav2 costmaps. The driver's own point cloud (`pointcloud.enable`) stays off: with
+color disabled it needs a non-color texture stream, and any enabled driver filter routes all
+frames through the driver's frame syncer.
+
 ## Launch files
 
 | File | What it starts |
@@ -61,6 +67,7 @@ rs-enumerate-devices -s                                   # camera visible, seri
 rs-enumerate-devices | grep -i "usb type"                 # 3.x expected
 ros2 topic hz /camera/camera/depth/image_rect_raw         # ~30 Hz
 ros2 topic echo --once /scan --field header               # frame_id camera_depth_frame
+ros2 topic hz /obstacle_cloud                             # 3D obstacle cloud (ad_r1m_jetson)
 ros2 run tf2_ros tf2_echo base_link camera_depth_frame    # matches the mount
 ros2 param get /camera/camera depth_module.emitter_enabled
 ```
