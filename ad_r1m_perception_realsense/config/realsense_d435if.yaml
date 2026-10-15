@@ -1,0 +1,32 @@
+# realsense2_camera parameters for a depth-only D435i / D435if used as a 2D scan source.
+# The D435if has an IR-pass filter on the stereo imagers, so depth relies on the IR projector:
+# keep the emitter at its default (on). depth_module.emitter_enabled is not set here because its
+# parameter type (bool or int) depends on the device; check with
+#   ros2 param get /camera/camera depth_module.emitter_enabled
+/**:
+  ros__parameters:
+    enable_depth: true
+    enable_color: false
+    enable_infra1: false
+    enable_infra2: false
+    enable_gyro: false
+    enable_accel: false
+    enable_sync: false
+    pointcloud.enable: false
+    align_depth.enable: false
+
+    depth_module.depth_profile: '848,480,30'
+
+    # Publishes camera_link -> camera_depth_frame -> camera_depth_optical_frame (factory extrinsics).
+    # base_link -> camera_link comes from the mount TF in realsense.launch.py.
+    publish_tf: true
+    tf_publish_rate: 0.0
+
+    # Reset the device on start: recovers a camera left in a bad state by a previous crash.
+    initial_reset: true
+
+    # Optional post-processing filters (CPU cost). Temporal filter reduces depth noise on static scenes.
+    decimation_filter.enable: false
+    spatial_filter.enable: false
+    temporal_filter.enable: false
+    hole_filling_filter.enable: false

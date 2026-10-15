@@ -1,0 +1,10 @@
+/**:
+  depthimage_to_laserscan:
+    ros__parameters:
+      scan_time: 0.033
+      range_min: 0.3
+      # Stereo depth error grows with distance squared; keep within the SLAM/Nav2 laser range (5.0 m)
+      range_max: 4.0
+      scan_height: 20 # rows around scan_offset (image height 480 for 848x480)
+      scan_offset: 0.5 # 0.0 = top row, 1.0 = bottom row; 0.5 = optical centre row for a level camera
+      output_frame: "camera_depth_frame"
