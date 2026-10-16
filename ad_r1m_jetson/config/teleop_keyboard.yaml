@@ -1,0 +1,13 @@
+# teleop_twist_keyboard (ros2/teleop_twist_keyboard, Jazzy) for the AD-R1M.
+# Published on cmd_vel_keyboard (remapped in teleop_keyboard.launch.py) = twist_mux "keyboard" input.
+#
+# Keys (diff drive: only forward/backward and turning are used):
+#   u i o     i/, forward/backward, j/l turn left/right, u/o/m/. combined, k (any other key) stop
+#   j k l     q/z +/-10% both speeds, w/x linear only, e/c angular only (no upper limit!)
+#   m , .     CTRL-C quit (publishes a final zero command)
+teleop_twist_keyboard:
+  ros__parameters:
+    stamped: true             # twist_mux uses TwistStamped on Jazzy
+    frame_id: base_link
+    speed: 0.25               # m/s, same as the joystick normal speed
+    turn: 0.6                 # rad/s
