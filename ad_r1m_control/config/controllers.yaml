@@ -31,7 +31,7 @@
 
       # Update with your robot's measurements
       wheel_separation: 0.29
-      wheel_radius: 0.05
+      wheel_radius: 0.0557
 
       position_feedback: true
 

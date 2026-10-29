@@ -18,7 +18,7 @@ amcl:
     lambda_short: 0.1
     laser_likelihood_max_dist: 0.01 # 10cm bubble around obstacles
     laser_max_range: 5.0
-    laser_min_range: 0.3
+    laser_min_range: 0.2
     laser_model_type: "likelihood_field"
     max_beams: 300       # no of beams/rays used in the particle filter scan
     max_particles: 2000  # max number of particles for localization
@@ -184,11 +184,11 @@ controller_server:
     FollowPath:
       plugin: "vector_pursuit_controller::VectorPursuitController"
       k: 10.0 # higher k = faster translation, lower k = faster rotation
-      desired_linear_vel: 0.5 # TARGET VELOCITY
+      desired_linear_vel: 0.2 # TARGET VELOCITY
       min_linear_velocity: 0.1
       min_turning_radius: 0.0
       max_lateral_accel: 1.0
-      max_linear_accel: 1.0
+      max_linear_accel: 0.5
 
       use_rotate_to_heading: true
       rotate_to_heading_angular_vel: 1.0
@@ -212,7 +212,7 @@ controller_server:
 
       # Get within this much of target to claim success
       xy_goal_tolerance: 0.10 # 10 cm
-      yaw_goal_tolerance: 0.15 # ~8.6 degrees
+      yaw_goal_tolerance: 0.30 # ~17 degrees
 
 #-----------------------------------------------------------------------------
 # Behavior server parameters
