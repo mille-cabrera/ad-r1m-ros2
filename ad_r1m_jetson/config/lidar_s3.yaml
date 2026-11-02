@@ -1,0 +1,11 @@
+# Parameters for the Slamtec sllidar_node (sllidar_ros2) driving an RPLIDAR S3 2D LiDAR.
+# serial_port can be overridden from lidar.launch.py (default /dev/ttyUSB0).
+/**:
+  ros__parameters:
+    channel_type: serial
+    serial_port: /dev/ttyUSB0
+    serial_baudrate: 1000000      # RPLIDAR S3 runs at 1 Mbaud
+    frame_id: lidar_link
+    inverted: false
+    angle_compensate: true
+    scan_mode: DenseBoost         # RPLIDAR S3 standard dense scan mode
