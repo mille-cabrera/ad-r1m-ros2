@@ -32,7 +32,7 @@ fi
 TAG="${TAG:-ad-r1m:jetson-jazzy}"
 TARGET="${TARGET:-dev}"
 ROS_DISTRO="${ROS_DISTRO:-jazzy}"
-BUILD_PACKAGES="${BUILD_PACKAGES:-ad_r1m_robot adi_3dtof_adtf31xx ad_r1m_jetson ad_r1m_teleop_joy}"
+BUILD_PACKAGES="${BUILD_PACKAGES:-ad_r1m_robot adi_3dtof_adtf31xx sllidar_ros2 ad_r1m_jetson ad_r1m_teleop_joy}"
 
 # --- parse cache option; collect the rest as pass-through args ----------------
 CACHE_ARGS=()
