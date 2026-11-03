@@ -132,7 +132,7 @@ def generate_launch_description():
                 name='base_link_to_lidar_link',
                 # PLACEHOLDER pose: 0.2 m above base_link, no rotation. Measure and update.
                 arguments=[
-                    '--x', '-0.19', '--y', '0.0', '--z', '0.2',
+                    '--x', '-0.15', '--y', '0.0', '--z', '0.25',
                     '--roll', '0.0', '--pitch', '0.0', '--yaw', '3.14159',
                     '--frame-id', 'base_link', '--child-frame-id', 'lidar_link',
                 ],
