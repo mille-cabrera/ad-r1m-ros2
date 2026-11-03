@@ -41,4 +41,15 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# -- waypoint_scan_demo --
+install(
+  DIRECTORY waypoint_scan_demo/launch waypoint_scan_demo/config
+  DESTINATION share/${PROJECT_NAME}/waypoint_scan_demo
+)
+
+install(PROGRAMS
+  waypoint_scan_demo/scripts/waypoint_scan.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()

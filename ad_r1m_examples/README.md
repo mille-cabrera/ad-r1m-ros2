@@ -10,3 +10,4 @@ configs, and scripts.
 |--------|-------------|
 | [lift_waypoint_demo](lift_waypoint_demo/) | Waypoint following with Nav2 and lift/elevator hardware add-on |
 | [imu_hil_demo](imu_hil_demo/) | Control simulated robot yaw with a real IMU (hardware-in-the-loop) |
+| [waypoint_scan_demo](waypoint_scan_demo/) | Nav2 waypoints with a left/center/right scan and frame-capture placeholder at each stop |

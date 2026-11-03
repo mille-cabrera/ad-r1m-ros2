@@ -21,6 +21,12 @@
 
   <exec_depend>example_interfaces</exec_depend>
 
+  <!-- Waypoint Scan Demo Dependencies -->
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+
   <!-- IMU HIL Demo Dependencies -->
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>

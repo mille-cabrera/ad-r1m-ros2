@@ -1,0 +1,33 @@
+# Waypoint + scan demo configuration.
+# Coordinates are in the map frame (meters / degrees). Adapt them to your map.
+waypoint_scan:
+  frame_id: map
+  localizer: amcl               # node name passed to waitUntilNav2Active()
+
+  # false: use the pose already set in AMCL (e.g. RViz "2D Pose Estimate").
+  # true:  publish initial_pose below to AMCL at startup.
+  set_initial_pose: false
+  initial_pose: {x: 0.0, y: 0.0, yaw_deg: 0.0}
+
+  loops: 1                      # <= 0 repeats forever
+  nav_timeout_sec: 120.0        # cancel a NavigateToPose goal after this time
+  nav_retries: 1                # retries per waypoint (clears costmaps first)
+
+  # Optional: waypoints recorded with the Nav2 RViz panel "Save WPs" button.
+  # Relative paths are resolved against this file. Overrides the waypoints list below.
+  # waypoints_file: my_route.yaml
+
+  scan:
+    left_deg: 90.0              # rotate left (CCW) from the waypoint heading
+    right_deg: 90.0             # rotate right (CW) from the waypoint heading
+    return_to_center: true      # finish facing the waypoint heading again
+    dwell_sec: 1.0              # pause at each scan stop (left / center / right)
+    spin_time_allowance_sec: 15 # Nav2 Spin time limit per rotation
+    capture_rate_hz: 5.0        # placeholder frame capture rate while scanning
+
+  # yaw_deg is the scan center heading. Set scan: false to only pass through a point.
+  # Ignored when waypoints_file (or --waypoints-file / launch waypoints_file:=) is set.
+  waypoints:
+    - {name: A, x: 1.0, y: 0.0, yaw_deg: 0.0}
+    - {name: B, x: 1.0, y: 1.0, yaw_deg: 90.0}
+    - {name: HOME, x: 0.0, y: 0.0, yaw_deg: 0.0, scan: false}
